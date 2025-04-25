@@ -1,0 +1,90 @@
+local rs = game:GetService("ReplicatedStorage")
+local event = rs:WaitForChild("ReliableRedEvent")
+local player = game.Players.LocalPlayer
+local gui = player.PlayerGui:WaitForChild("ScreenGui")  -- Assuming you already have a ScreenGui in your PlayerGui
+
+local args = {
+    [1] = {},
+    [2] = {
+        ["/"] = {
+            [1] = {
+                [1] = "\1",
+                [2] = "4d7ede51a",
+                [3] = false,
+                ["n"] = 3
+            }
+        }
+    }
+}
+
+local stopButton = Instance.new("TextButton")
+stopButton.Parent = gui
+stopButton.Size = UDim2.new(0, 200, 0, 50)
+stopButton.Position = UDim2.new(0, 50, 0, 50)
+stopButton.Text = "Stop Reroll"
+
+local continueButton = Instance.new("TextButton")
+continueButton.Parent = gui
+continueButton.Size = UDim2.new(0, 200, 0, 50)
+continueButton.Position = UDim2.new(0, 50, 0, 120)
+continueButton.Text = "Continue Reroll"
+
+local isRunning = true
+
+stopButton.MouseButton1Click:Connect(function()
+    isRunning = false
+    print("Reroll stopped.")
+end)
+
+continueButton.MouseButton1Click:Connect(function()
+    isRunning = true
+    print("Reroll continued.")
+end)
+
+local function getAllTraits()
+    local plr = game.Players.LocalPlayer
+    local gui = plr.PlayerGui:WaitForChild("TraitReroll")
+    local traitGui = gui:WaitForChild("trait")
+    local traits = traitGui:WaitForChild("traits")
+
+    local traitNames = {}
+
+    for _, template in pairs(traits:GetChildren()) do
+        if template:IsA("Frame") then  
+            local trait = template:FindFirstChild("name")
+            if trait then
+                table.insert(traitNames, trait.Text)  
+            else
+                print("No trait found in this template")
+            end
+        end
+    end
+
+    return traitNames 
+end
+
+while true do
+    if isRunning then
+        event:FireServer(unpack(args))  
+        wait(0.1) 
+
+        local traits = getAllTraits()  
+
+        for _, trait in pairs(traits) do
+            print("Current Trait:", trait)
+        end
+
+        for _, trait in pairs(traits) do
+            if trait == "Liege" or trait == "Godly" or trait == "Exclusive" then
+                print("Got a rare trait (" .. trait .. ")! Stopping reroll.")
+                isRunning = false  
+                break
+            end
+        end
+        if not isRunning then
+            break
+        end
+    else
+        wait(0.1)  
+    end
+end
