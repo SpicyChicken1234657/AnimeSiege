@@ -76,7 +76,7 @@ end
 while true do
     if isRunning then
         event:FireServer(unpack(args)) -- Fire the event with the arguments
-        wait(0.5) -- Delay to avoid overloading
+        wait(0.2) -- Delay to avoid overloading
 
         local traits = getAllTraits() -- Retrieve current traits
 
