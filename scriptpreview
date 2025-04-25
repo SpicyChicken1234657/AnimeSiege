@@ -31,17 +31,21 @@ continueButton.Size = UDim2.new(0, 200, 0, 50)
 continueButton.Position = UDim2.new(0, 50, 0, 120)
 continueButton.Text = "Continue Reroll"
 
+local speedButton = Instance.new("TextBox")
+speedButton.Parent = gui
+speedButton.Size = UDim2.new(0, 200, 0, 50)
+speedButton.Position = UDim2.new(0, 50, 0, 190)
+speedButton.Text = "Speed"  
+speedButton.PlaceholderText = "Enter Speed"
+
 local isRunning = false -- Initially stopped
 local forceStop = false -- New flag for force stopping
+local isTyping = false -- makes sure player isnt typing
 
 -- Button functionality
 stopButton.MouseButton1Click:Connect(function()
-    if not forceStop then
-        isRunning = false
-        print("Reroll stopped by user.")
-    else
-        print("Cannot stop. Rare trait detected.")
-    end
+    isRunning = false
+    print("Reroll stopped by user.")
 end)
 
 continueButton.MouseButton1Click:Connect(function()
@@ -78,9 +82,10 @@ end
 
 -- Main reroll loop
 while true do
+local speed = tonumber(speedButton.Text)
     if isRunning then
         event:FireServer(unpack(args)) -- Fire the event with the arguments
-        wait(0.2) -- Delay to avoid overloading
+        wait(speed) -- Delay to avoid overloading
 
         local traits = getAllTraits() -- Retrieve current traits
 
@@ -91,7 +96,7 @@ while true do
 
         -- Check for rare traits and stop reroll
         for _, trait in pairs(traits) do
-            if trait == "Liege" or trait == "Godly" or trait == "Exclusive" then
+            if trait == "Liege" or trait == "Sniper"then
                 print("Got a rare trait (" .. trait .. ")! Forcefully stopping reroll.")
                 isRunning = false
                 forceStop = true -- Enforce stopping
