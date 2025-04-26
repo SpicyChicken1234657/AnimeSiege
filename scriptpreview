@@ -1,7 +1,62 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Ascension Hub",
+    Icon = 0,
+    LoadingTitle = "Ascension Hub",
+    LoadingSubtitle = "Upcoming...",
+    Theme = "Default",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Ascension Hub"
+    },
+    Discord = {
+        Enabled = true,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Untitled",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided",
+        FileName = "sigmasigma22131",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
+})
+
+Rayfield:Notify({
+    Title = "Thanks for using Ascension Hub",
+    Content = "Join our discord server for more scripts and updates",
+    Duration = 5,
+    Image = 4483362458,
+})
+
 local rs = game:GetService("ReplicatedStorage")
 local event = rs:WaitForChild("ReliableRedEvent")
 local player = game.Players.LocalPlayer
 local gui = player.PlayerGui:WaitForChild("ScreenGui") -- Assumes ScreenGui exists in PlayerGui
+
+local infoTab = Window:CreateTab("Info", 4483362458)
+local infoSection = infoTab:CreateSection("Info")
+
+local discordButton = infoTab:CreateButton({
+    Name = "Join our Discord",
+    Callback = function()
+        setclipboard("https://discord.gg/noinvitelink")
+        Rayfield:Notify({
+            Title = "Discord Invite Copied!",
+            Content = "The invite link has been copied to your clipboard. Paste it into your browser to join.",
+            Duration = 5,
+            Image = 4483362458,
+        })
+    end,
+})
 
 local args = {
     [1] = {},
@@ -17,47 +72,68 @@ local args = {
     }
 }
 
--- Create Stop Button
-local stopButton = Instance.new("TextButton")
-stopButton.Parent = gui
-stopButton.Size = UDim2.new(0, 200, 0, 50)
-stopButton.Position = UDim2.new(0, 50, 0, 50)
-stopButton.Text = "Stop Reroll"
 
--- Create Continue Button
-local continueButton = Instance.new("TextButton")
-continueButton.Parent = gui
-continueButton.Size = UDim2.new(0, 200, 0, 50)
-continueButton.Position = UDim2.new(0, 50, 0, 120)
-continueButton.Text = "Continue Reroll"
+local Divider = infoTab:CreateDivider()
 
-local speedButton = Instance.new("TextBox")
-speedButton.Parent = gui
-speedButton.Size = UDim2.new(0, 200, 0, 50)
-speedButton.Position = UDim2.new(0, 50, 0, 190)
-speedButton.Text = "Speed"  
-speedButton.PlaceholderText = "Enter Speed"
+local playerTab = Window:CreateTab("Player", 4483362458)
+local playerSection = playerTab:CreateSection("Player")
+
+local walkspeedSlider = playerTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 100},
+    Increment = 1,
+    Suffix = "Walkspeed",
+    CurrentValue = 10,
+    Flag = "Walkspeed",
+    Callback = function(walkspeed)
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = walkspeed
+        end
+    end,
+})
+
+local noclipConnection
+
+local noclipToggle = playerTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(noclipValue)
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        if noclipValue then
+            noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+                if character then
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
+    end,
+})
+
+local rerollTab = Window:CreateTab("Reroll", 4483362458) -- Title, Image
+local rerollSection = rerollTab:CreateSection("Reroll")
 
 local isRunning = false -- Initially stopped
-local forceStop = false -- New flag for force stopping
-local isTyping = false -- makes sure player isnt typing
+local forceStop = false
 
--- Button functionality
-stopButton.MouseButton1Click:Connect(function()
-    isRunning = false
-    print("Reroll stopped by user.")
-end)
-
-continueButton.MouseButton1Click:Connect(function()
-    if not forceStop then
-        isRunning = true
-        print("Reroll continued by user.")
-    else
-        print("Cannot continue. Reroll is forcefully stopped.")
-    end
-end)
-
--- Function to retrieve all traits
 local function getAllTraits()
     local plr = game.Players.LocalPlayer
     local gui = plr.PlayerGui:WaitForChild("TraitReroll")
@@ -80,34 +156,116 @@ local function getAllTraits()
     return traitNames
 end
 
--- Main reroll loop
-while true do
-local speed = tonumber(speedButton.Text)
-    if isRunning then
-        event:FireServer(unpack(args)) -- Fire the event with the arguments
-        wait(speed) -- Delay to avoid overloading
 
-        local traits = getAllTraits() -- Retrieve current traits
+local rerollUnitIdInput = rerollTab:CreateInput({
+    Name = "Unit ID",
+    CurrentValue = "",
+    PlaceholderText = "Enter Unit ID",
+    RemoveTextAfterFocusLost = false,
+    Flag = "unitIdInput",
+    Callback = function(unitId)
+        local unitId = tostring(unitId)
+        return unitId
+    end,
+})
 
-        -- Log traits for debugging
-        for _, trait in pairs(traits) do
-            print("Current Trait:", trait)
+local firstValueInput = rerollTab:CreateInput({
+    Name = "First Value",
+    CurrentValue = "",
+    PlaceholderText = "Enter First Value",
+    RemoveTextAfterFocusLost = false,
+    Flag = "firstValueInput",
+    Callback = function(firstValue)
+        local firstValue = tonumber(firstValue)
+        return firstValue
+    end,
+})
+
+local speedSlider = rerollTab:CreateSlider({
+    Name = "Speed",
+    Range = {0.15, 2},
+    Increment = 0.05,
+    Suffix = "Delay",
+    CurrentValue = 0.5,
+    Flag = "delaySlider",
+    Callback = function(speed)
+        local speed = tonumber(speed)
+        return speed
+    end,
+})
+
+local selectedTrait = nil
+
+local traitDropdown = rerollTab:CreateDropdown({
+    Name = "Select Trait",
+    Options = {
+        "Superior I", "Superior II", "Superior III",
+        "Swift I", "Swift II", "Swift III",
+        "Range I", "Range II", "Range III",
+        "Adept", "Executioner", "Sniper", "Godspeed",
+        "Finisher", "Rainbow", "Godly", "Exclusive", "Liege"
+    },
+    MultiSelect = false,
+    Flag = "traitDropdown",
+    Callback = function(traitChosen)
+        -- If it's a table, grab the first element
+        if typeof(traitChosen) == "table" then
+            selectedTrait = traitChosen[1]
+        elseif typeof(traitChosen) == "string" then
+            selectedTrait = traitChosen
         end
 
-        -- Check for rare traits and stop reroll
-        for _, trait in pairs(traits) do
-            if trait == "Liege" or trait == "Sniper"then
-                print("Got a rare trait (" .. trait .. ")! Forcefully stopping reroll.")
-                isRunning = false
-                forceStop = true -- Enforce stopping
+        if selectedTrait then
+            print("Selected Trait: " .. selectedTrait)
+        else
+            warn("Invalid trait selection:", traitChosen)
+        end
+    end,
+})
+
+
+local stopRerollButton = rerollTab:CreateButton({
+    Name = "Stop Reroll",
+    Callback = function()
+        isRunning = false
+        print("Reroll stopped by user.")
+    end,
+})
+
+local rerollButton = rerollTab:CreateButton({
+    Name = "Reroll",
+    Callback = function()
+        isRunning = true
+        forceStop = false
+
+        while isRunning do
+            local speed = speedSlider.CurrentValue -- Use the slider's current value for speed
+
+            -- Fire the server event
+            event:FireServer(unpack(args))
+            wait(speed)
+
+            -- Get all traits and check for rare traits
+            local traits = getAllTraits()
+            local currentTrait = selectedTrait or "None"
+            for _, trait in pairs(traits) do
+                print("Current Trait:", trait)
+                if trait == selectedTrait then
+                    print("Got a rare trait (" .. trait .. ")! Forcefully stopping reroll.")
+                    isRunning = false
+                    forceStop = true
+                    break
+                end
+            end
+
+            -- Stop the loop if forceStop is true
+            if forceStop then
                 break
             end
         end
 
-        if forceStop then
-            break -- Exit the loop immediately
+        if not isRunning then
+            print("Reroll process has stopped.")
         end
-    else
-        wait(0.1) -- Wait before checking again
-    end
-end
+    end,
+})
