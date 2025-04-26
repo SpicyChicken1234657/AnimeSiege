@@ -58,19 +58,6 @@ local discordButton = infoTab:CreateButton({
     end,
 })
 
-local args = {
-    [1] = {},
-    [2] = {
-        ["/"] = {
-            [1] = {
-                [1] = "\1",
-                [2] = "4d7ede51a",
-                [3] = false,
-                ["n"] = 3
-            }
-        }
-    }
-}
 
 
 local Divider = infoTab:CreateDivider()
@@ -164,8 +151,10 @@ local rerollUnitIdInput = rerollTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Flag = "unitIdInput",
     Callback = function(unitId)
-        local unitId = tostring(unitId)
-        return unitId
+        local cleanUnitId = tostring(unitId):gsub("\\", "\\\\")
+        cleanUnitId = '"' .. cleanUnitId .. '"'
+        print("Cleaned Unit ID:", cleanUnitId)
+        return cleanUnitId
     end,
 })
 
@@ -176,8 +165,10 @@ local firstValueInput = rerollTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Flag = "firstValueInput",
     Callback = function(firstValue)
-        local firstValue = tonumber(firstValue)
-        return firstValue
+        -- Handle backslashes properly and wrap the value in quotes
+        local cleanValue = '"' .. tostring(firstValue):gsub("\\", "\\") .. '"'
+        print("Cleaned First Value:", cleanValue)
+        return cleanValue
     end,
 })
 
@@ -237,6 +228,43 @@ local rerollButton = rerollTab:CreateButton({
     Callback = function()
         isRunning = true
         forceStop = false
+
+        -- Ensure cleanValue and cleanUnitId are initialized properly
+        print("cleanValue:", tostring(cleanValue))  -- Debugging cleanValue
+        print("cleanUnitId:", tostring(cleanUnitId))  -- Debugging cleanUnitId
+        
+        -- Define the args structure with explicit string conversions
+        local args = {
+            [1] = {"\\1"},  -- This is a string, not a table
+            [2] = {
+                ["/"] = {
+                    [1] = tostring(cleanValue) or "nil",  -- Explicitly convert to string or default to "nil"
+                    [2] = tostring(cleanUnitId) or "nil", -- Explicitly convert to string or default to "nil"
+                    [3] = "false",  -- Use string "false"
+                    ["n"] = "3"  -- This is also a string now
+                }
+            }
+        }
+
+        -- DEBUG: Print the final structure of args before firing the event
+        print("Final Args Structure:")
+        for i, v in pairs(args) do
+            if type(v) == "table" then
+                print("Args[" .. i .. "] is a table:")
+                for subKey, subValue in pairs(v) do
+                    if type(subValue) == "table" then
+                        print("  " .. subKey .. " is a nested table:")
+                        for nestedKey, nestedValue in pairs(subValue) do
+                            print("    " .. nestedKey .. " = " .. tostring(nestedValue))  -- Ensure nested values are strings
+                        end
+                    else
+                        print("  " .. subKey .. " = " .. tostring(subValue))  -- Ensure all top-level values are strings
+                    end
+                end
+            else
+                print("Args[" .. i .. "] = " .. tostring(v))  -- Ensure values at the first level are strings
+            end
+        end
 
         while isRunning do
             local speed = speedSlider.CurrentValue -- Use the slider's current value for speed
