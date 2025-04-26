@@ -1,5 +1,99 @@
+
+
+```lua
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-.            noclipConnection = game:GetService("RunService").Stepped:Connect(function()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Ascension Hub",
+    Icon = 0,
+    LoadingTitle = "Ascension Hub",
+    LoadingSubtitle = "Upcoming...",
+    Theme = "Default",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Ascension Hub"
+    },
+    Discord = {
+        Enabled = true,
+        Invite = "noinvitelink",
+        RememberJoins = true
+    },
+    KeySystem = true,
+    KeySettings = {
+        Title = "Untitled",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided",
+        FileName = "sigmasigma22131",
+        SaveKey = true,
+        GrabKeyFromSite = false,
+        Key = {"AscensionHub37793"}
+    }
+})
+
+Rayfield:Notify({
+    Title = "Thanks for using Ascension Hub",
+    Content = "Join our discord server for more scripts and updates",
+    Duration = 5,
+    Image = 4483362458,
+})
+
+local rs = game:GetService("ReplicatedStorage")
+local event = rs:WaitForChild("ReliableRedEvent")
+local player = game.Players.LocalPlayer
+local gui = player.PlayerGui:WaitForChild("ScreenGui") -- Assumes ScreenGui exists in PlayerGui
+
+local infoTab = Window:CreateTab("Info", 4483362458)
+local infoSection = infoTab:CreateSection("Info")
+
+local discordButton = infoTab:CreateButton({
+    Name = "Join our Discord",
+    Callback = function()
+        setclipboard("https://discord.gg/noinvitelink")
+        Rayfield:Notify({
+            Title = "Discord Invite Copied!",
+            Content = "The invite link has been copied to your clipboard. Paste it into your browser to join.",
+            Duration = 5,
+            Image = 4483362458,
+        })
+    end,
+})
+
+local Divider = infoTab:CreateDivider()
+
+local playerTab = Window:CreateTab("Player", 4483362458)
+local playerSection = playerTab:CreateSection("Player")
+
+local walkspeedSlider = playerTab:CreateSlider({
+    Name = "WalkSpeed",
+    Range = {16, 100},
+    Increment = 1,
+    Suffix = "Walkspeed",
+    CurrentValue = 10,
+    Flag = "Walkspeed",
+    Callback = function(walkspeed)
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        if character and character:FindFirstChild("Humanoid") then
+            character.Humanoid.WalkSpeed = walkspeed
+        end
+    end,
+})
+
+local noclipConnection
+
+local noclipToggle = playerTab:CreateToggle({
+    Name = "Noclip",
+    CurrentValue = false,
+    Flag = "NoclipToggle",
+    Callback = function(noclipValue)
+        local player = game.Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+
+        if noclipValue then
+            noclipConnection = game:GetService("RunService").Stepped:Connect(function()
                 if character then
                     for _, part in pairs(character:GetDescendants()) do
                         if part:IsA("BasePart") and part.CanCollide then
@@ -27,8 +121,6 @@ local rerollSection = rerollTab:CreateSection("Reroll")
 
 local isRunning = false -- Initially stopped
 local forceStop = false
-local cleanValue = nil
-local cleanUnitId = nil
 
 local function getAllTraits()
     local plr = game.Players.LocalPlayer
@@ -59,9 +151,10 @@ local rerollUnitIdInput = rerollTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Flag = "unitIdInput",
     Callback = function(unitId)
-        cleanUnitId = tostring(unitId):gsub("\\", "\\\\")
+        local cleanUnitId = tostring(unitId):gsub("\\", "\\\\")
         cleanUnitId = '"' .. cleanUnitId .. '"'
         print("Cleaned Unit ID:", cleanUnitId)
+        return cleanUnitId
     end,
 })
 
@@ -72,8 +165,10 @@ local firstValueInput = rerollTab:CreateInput({
     RemoveTextAfterFocusLost = false,
     Flag = "firstValueInput",
     Callback = function(firstValue)
-        cleanValue = '"' .. tostring(firstValue):gsub("\\", "\\") .. '"'
+        -- Handle backslashes properly and wrap the value in quotes
+        local cleanValue = '"' .. tostring(firstValue):gsub("\\", "\\") .. '"'
         print("Cleaned First Value:", cleanValue)
+        return cleanValue
     end,
 })
 
@@ -130,31 +225,22 @@ local stopRerollButton = rerollTab:CreateButton({
 local rerollButton = rerollTab:CreateButton({
     Name = "Reroll",
     Callback = function()
-        if not cleanValue or not cleanUnitId then
-            warn("Error: Unit ID or First Value is missing!")
-            return
-        end
-
         isRunning = true
         forceStop = false
 
-        -- Ensure the values are correctly formatted as strings
-        cleanValue = tostring(cleanValue):gsub("\\", "\\\\"):gsub("\"", "\\\"")  -- Clean up any backslashes or quotes
-        cleanUnitId = tostring(cleanUnitId):gsub("\\", "\\\\"):gsub("\"", "\\\"")
+        -- Ensure cleanValue and cleanUnitId are initialized properly
+        print("cleanValue:", tostring(cleanValue))  -- Debugging cleanValue
+        print("cleanUnitId:", tostring(cleanUnitId))  -- Debugging cleanUnitId
 
-        -- Debug print to check formatted values
-        print("Cleaned cleanValue:", cleanValue)
-        print("Cleaned cleanUnitId:", cleanUnitId)
-
-        -- Define the args structure with formatted cleanValue and cleanUnitId
+        -- Define the args structure with explicit string conversions
         local args = {
-            [1] = {}, -- Empty table
+            [1] = {"\\1"},  -- This is a string, not a table
             [2] = {
                 ["/"] = {
-                    [1] = cleanValue,       -- Cleaned and formatted cleanValue
-                    [2] = cleanUnitId,      -- Cleaned and formatted cleanUnitId
-                    [3] = "false",          -- "false" as a string
-                    ["n"] = "3"             -- "3" as a string
+                    [1] = tostring(cleanValue) or "nil",  -- Explicitly convert to string or default to "nil"
+                    [2] = tostring(cleanUnitId) or "nil", -- Explicitly convert to string or default to "nil"
+                    [3] = "false",  -- Use string "false"
+                    ["n"] = "3"  -- This is also a string now
                 }
             }
         }
@@ -168,18 +254,17 @@ local rerollButton = rerollTab:CreateButton({
                     if type(subValue) == "table" then
                         print("  " .. subKey .. " is a nested table:")
                         for nestedKey, nestedValue in pairs(subValue) do
-                            print("    " .. nestedKey .. " = " .. tostring(nestedValue))
+                            print("    " .. nestedKey .. " = " .. tostring(nestedValue))  -- Ensure nested values are strings
                         end
                     else
-                        print("  " .. subKey .. " = " .. tostring(subValue))
+                        print("  " .. subKey .. " = " .. tostring(subValue))  -- Ensure all top-level values are strings
                     end
                 end
             else
-                print("Args[" .. i .. "] = " .. tostring(v))
+                print("Args[" .. i .. "] = " .. tostring(v))  -- Ensure values at the first level are strings
             end
         end
 
-        -- Fire the event
         while isRunning do
             local speed = speedSlider.CurrentValue -- Use the slider's current value for speed
 
@@ -187,7 +272,7 @@ local rerollButton = rerollTab:CreateButton({
             event:FireServer(unpack(args))
             wait(speed)
 
-            -- Check for traits and stop reroll if a rare trait is found
+            -- Get all traits and check for rare traits
             local traits = getAllTraits()
             local currentTrait = selectedTrait or "None"
             for _, trait in pairs(traits) do
@@ -211,3 +296,4 @@ local rerollButton = rerollTab:CreateButton({
         end
     end,
 })
+```
