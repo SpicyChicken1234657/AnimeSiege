@@ -1,256 +1,66 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
-local Window = Rayfield:CreateWindow({
-    Name = "Ascension Hub",
-    Icon = 0,
-    LoadingTitle = "Ascension Hub",
-    LoadingSubtitle = "Upcoming...",
-    Theme = "Default",
-    DisableRayfieldPrompts = true,
-    DisableBuildWarnings = false,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = nil,
-        FileName = "Ascension Hub"
-    },
-    Discord = {
-        Enabled = true,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
-    KeySystem = true,
-    KeySettings = {
-        Title = "Untitled",
-        Subtitle = "Key System",
-        Note = "No method of obtaining the key is provided",
-        FileName = "sigmasigma22131",
-        SaveKey = true,
-        GrabKeyFromSite = false,
-        Key = {"Hello"}
-    }
-})
-
-Rayfield:Notify({
-    Title = "Thanks for using Ascension Hub",
-    Content = "Join our discord server for more scripts and updates",
-    Duration = 5,
-    Image = 4483362458,
-})
-
-local rs = game:GetService("ReplicatedStorage")
-local event = rs:WaitForChild("ReliableRedEvent")
-local player = game.Players.LocalPlayer
-local gui = player.PlayerGui:WaitForChild("ScreenGui") -- Assumes ScreenGui exists in PlayerGui
-
-local infoTab = Window:CreateTab("Info", 4483362458)
-local infoSection = infoTab:CreateSection("Info")
-
-local discordButton = infoTab:CreateButton({
-    Name = "Join our Discord",
-    Callback = function()
-        setclipboard("https://discord.gg/noinvitelink")
-        Rayfield:Notify({
-            Title = "Discord Invite Copied!",
-            Content = "The invite link has been copied to your clipboard. Paste it into your browser to join.",
-            Duration = 5,
-            Image = 4483362458,
-        })
-    end,
-})
-
-local Divider = infoTab:CreateDivider()
-
-local playerTab = Window:CreateTab("Player", 4483362458)
-local playerSection = playerTab:CreateSection("Player")
-
-local walkspeedSlider = playerTab:CreateSlider({
-    Name = "WalkSpeed",
-    Range = {16, 100},
-    Increment = 1,
-    Suffix = "Walkspeed",
-    CurrentValue = 10,
-    Flag = "Walkspeed",
-    Callback = function(walkspeed)
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        if character and character:FindFirstChild("Humanoid") then
-            character.Humanoid.WalkSpeed = walkspeed
-        end
-    end,
-})
-
-local noclipConnection
-
-local noclipToggle = playerTab:CreateToggle({
-    Name = "Noclip",
-    CurrentValue = false,
-    Flag = "NoclipToggle",
-    Callback = function(noclipValue)
-        local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-
-        if noclipValue then
-            noclipConnection = game:GetService("RunService").Stepped:Connect(function()
-                if character then
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") and part.CanCollide then
-                            part.CanCollide = false
-                        end
-                    end
-                end
-            end)
-        else
-            if noclipConnection then
-                noclipConnection:Disconnect()
-                noclipConnection = nil
-            end
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end
-    end,
-})
-
-local rerollTab = Window:CreateTab("Reroll", 4483362458) -- Title, Image
-local rerollSection = rerollTab:CreateSection("Reroll")
-
--- Global variables for inputs
-local cleanValue = nil
-local cleanUnitId = nil
-local selectedTrait = nil
-local isRunning = false
-local forceStop = false
-
--- Utility function to get all traits
-local function getAllTraits()
-    local plr = game.Players.LocalPlayer
-    local gui = plr.PlayerGui:WaitForChild("TraitReroll")
-    local traitGui = gui:WaitForChild("trait")
-    local traits = traitGui:WaitForChild("traits")
-
-    local traitNames = {}
-
-    for _, template in pairs(traits:GetChildren()) do
-        if template:IsA("Frame") then
-            local trait = template:FindFirstChild("name")
-            if trait then
-                table.insert(traitNames, trait.Text)
-            else
-                print("No trait found in this template")
-            end
-        end
-    end
-
-    return traitNames
-end
-
--- Inputs for Unit ID and First Value
-local rerollUnitIdInput = rerollTab:CreateInput({
-    Name = "Unit ID",
-    CurrentValue = "",
-    PlaceholderText = "Enter Unit ID",
-    RemoveTextAfterFocusLost = false,
-    Flag = "unitIdInput",
-    Callback = function(unitId)
-        cleanUnitId = '"' .. tostring(unitId):gsub("\\", "\\\\") .. '"'
-        print("Cleaned Unit ID:", cleanUnitId)
-    end,
-})
-
-local firstValueInput = rerollTab:CreateInput({
-    Name = "First Value",
-    CurrentValue = "",
-    PlaceholderText = "Enter First Value",
-    RemoveTextAfterFocusLost = false,
-    Flag = "firstValueInput",
-    Callback = function(firstValue)
-        cleanValue = '"' .. tostring(firstValue):gsub("\\", "\\\\") .. '"'
-        print("Cleaned First Value:", cleanValue)
-    end,
-})
-
--- Slider for Speed
-local speedSlider = rerollTab:CreateSlider({
-    Name = "Speed",
-    Range = {0.15, 2},
-    Increment = 0.05,
-    Suffix = "Delay",
-    CurrentValue = 0.5,
-    Flag = "delaySlider",
-    Callback = function(speed)
-        print("Speed set to:", speed)
-    end,
-})
-
--- Dropdown for selecting traits
-local traitDropdown = rerollTab:CreateDropdown({
-    Name = "Select Trait",
-    Options = {
-        "Superior I", "Superior II", "Superior III",
-        "Swift I", "Swift II", "Swift III",
-        "Range I", "Range II", "Range III",
-        "Adept", "Executioner", "Sniper", "Godspeed",
-        "Finisher", "Rainbow", "Godly", "Exclusive", "Liege"
-    },
-    MultiSelect = false,
-    Flag = "traitDropdown",
-    Callback = function(traitChosen)
-        selectedTrait = traitChosen
-        print("Selected Trait:", selectedTrait)
-    end,
-})
-
--- Stop Reroll Button
-local stopRerollButton = rerollTab:CreateButton({
-    Name = "Stop Reroll",
-    Callback = function()
-        isRunning = false
-        print("Reroll stopped by user.")
-    end,
-})
-
--- Reroll Button
 local rerollButton = rerollTab:CreateButton({
     Name = "Reroll",
     Callback = function()
         if not cleanValue or not cleanUnitId then
-            warn("Please enter both Unit ID and First Value before rerolling.")
-            return
-        end
-
-        if not selectedTrait then
-            warn("Please select a trait before rerolling.")
+            warn("Error: Unit ID or First Value is missing!")
             return
         end
 
         isRunning = true
         forceStop = false
 
-        -- Define the args structure
+        -- Ensure the values are correctly formatted as strings
+        cleanValue = tostring(cleanValue):gsub("\\", "\\\\"):gsub("\"", "\\\"")  -- Clean up any backslashes or quotes
+        cleanUnitId = tostring(cleanUnitId):gsub("\\", "\\\\"):gsub("\"", "\\\"")
+
+        -- Debug print to check formatted values
+        print("Cleaned cleanValue:", cleanValue)
+        print("Cleaned cleanUnitId:", cleanUnitId)
+
+        -- Define the args structure with formatted cleanValue and cleanUnitId
         local args = {
-            [1] = "\\1",
+            [1] = {}, -- Empty table
             [2] = {
                 ["/"] = {
-                    [1] = cleanValue,
-                    [2] = cleanUnitId,
-                    [3] = "false",
-                    ["n"] = "3"
+                    [1] = cleanValue,       -- Cleaned and formatted cleanValue
+                    [2] = cleanUnitId,      -- Cleaned and formatted cleanUnitId
+                    [3] = "false",          -- "false" as a string
+                    ["n"] = "3"             -- "3" as a string
                 }
             }
         }
 
-        -- Start reroll loop
+        -- DEBUG: Print the final structure of args before firing the event
+        print("Final Args Structure:")
+        for i, v in pairs(args) do
+            if type(v) == "table" then
+                print("Args[" .. i .. "] is a table:")
+                for subKey, subValue in pairs(v) do
+                    if type(subValue) == "table" then
+                        print("  " .. subKey .. " is a nested table:")
+                        for nestedKey, nestedValue in pairs(subValue) do
+                            print("    " .. nestedKey .. " = " .. tostring(nestedValue))
+                        end
+                    else
+                        print("  " .. subKey .. " = " .. tostring(subValue))
+                    end
+                end
+            else
+                print("Args[" .. i .. "] = " .. tostring(v))
+            end
+        end
+
+        -- Fire the event
         while isRunning do
-            local speed = speedSlider.CurrentValue
+            local speed = speedSlider.CurrentValue -- Use the slider's current value for speed
 
             -- Fire the server event
             event:FireServer(unpack(args))
             wait(speed)
 
-            -- Get all traits and check for rare traits
+            -- Check for traits and stop reroll if a rare trait is found
             local traits = getAllTraits()
+            local currentTrait = selectedTrait or "None"
             for _, trait in pairs(traits) do
                 print("Current Trait:", trait)
                 if trait == selectedTrait then
