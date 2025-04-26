@@ -1,104 +1,103 @@
-local rs = game:GetService("ReplicatedStorage")
-local event = rs:WaitForChild("ReliableRedEvent")
-local player = game.Players.LocalPlayer
-local gui = player.PlayerGui:WaitForChild("ScreenGui") -- Assumes ScreenGui exists in PlayerGui
+local cleanValue = nil
+local cleanUnitId = nil
 
-local args = {
-    [1] = {},
-    [2] = {
-        ["/"] = {
-            [1] = {
-                [1] = "\1",
-                [2] = "4d7ede51a",
-                [3] = false,
-                ["n"] = 3
+local rerollUnitIdInput = rerollTab:CreateInput({
+    Name = "Unit ID",
+    CurrentValue = "",
+    PlaceholderText = "Enter Unit ID",
+    RemoveTextAfterFocusLost = false,
+    Flag = "unitIdInput",
+    Callback = function(unitId)
+        cleanUnitId = tostring(unitId):gsub("\\", "\\\\")
+        cleanUnitId = '"' .. cleanUnitId .. '"'
+        print("Cleaned Unit ID:", cleanUnitId)
+    end,
+})
+
+local firstValueInput = rerollTab:CreateInput({
+    Name = "First Value",
+    CurrentValue = "",
+    PlaceholderText = "Enter First Value",
+    RemoveTextAfterFocusLost = false,
+    Flag = "firstValueInput",
+    Callback = function(firstValue)
+        cleanValue = '"' .. tostring(firstValue):gsub("\\", "\\") .. '"'
+        print("Cleaned First Value:", cleanValue)
+    end,
+})
+
+local rerollButton = rerollTab:CreateButton({
+    Name = "Reroll",
+    Callback = function()
+        if not cleanValue or not cleanUnitId then
+            warn("Error: Unit ID or First Value is missing!")
+            return
+        end
+
+        isRunning = true
+        forceStop = false
+
+        -- Define the args structure with explicit string conversions
+        local args = {
+            [1] = {"\\1"}, -- This is a string, not a table
+            [2] = {
+                ["/"] = {
+                    [1] = cleanValue or "nil", -- Use global cleanValue
+                    [2] = cleanUnitId or "nil", -- Use global cleanUnitId
+                    [3] = "false", -- Use string "false"
+                    ["n"] = "3" -- This is also a string now
+                }
             }
         }
-    }
-}
 
--- Create Stop Button
-local stopButton = Instance.new("TextButton")
-stopButton.Parent = gui
-stopButton.Size = UDim2.new(0, 200, 0, 50)
-stopButton.Position = UDim2.new(0, 50, 0, 50)
-stopButton.Text = "Stop Reroll"
-
--- Create Continue Button
-local continueButton = Instance.new("TextButton")
-continueButton.Parent = gui
-continueButton.Size = UDim2.new(0, 200, 0, 50)
-continueButton.Position = UDim2.new(0, 50, 0, 120)
-continueButton.Text = "Continue Reroll"
-
-local isRunning = false -- Initially stopped
-local forceStop = false -- New flag for force stopping
-
--- Button functionality
-stopButton.MouseButton1Click:Connect(function()
-    isRunning = false
-    print("Reroll stopped by user.")
-end)
-
-continueButton.MouseButton1Click:Connect(function()
-    if not forceStop then
-        isRunning = true
-        print("Reroll continued by user.")
-    else
-        print("Cannot continue. Reroll is forcefully stopped.")
-    end
-end)
-
--- Function to retrieve all traits
-local function getAllTraits()
-    local plr = game.Players.LocalPlayer
-    local gui = plr.PlayerGui:WaitForChild("TraitReroll")
-    local traitGui = gui:WaitForChild("trait")
-    local traits = traitGui:WaitForChild("traits")
-
-    local traitNames = {}
-
-    for _, template in pairs(traits:GetChildren()) do
-        if template:IsA("Frame") then
-            local trait = template:FindFirstChild("name")
-            if trait then
-                table.insert(traitNames, trait.Text)
+        -- DEBUG: Print the final structure of args before firing the event
+        print("Final Args Structure:")
+        for i, v in pairs(args) do
+            if type(v) == "table" then
+                print("Args[" .. i .. "] is a table:")
+                for subKey, subValue in pairs(v) do
+                    if type(subValue) == "table" then
+                        print("  " .. subKey .. " is a nested table:")
+                        for nestedKey, nestedValue in pairs(subValue) do
+                            print("    " .. nestedKey .. " = " .. tostring(nestedValue))
+                        end
+                    else
+                        print("  " .. subKey .. " = " .. tostring(subValue))
+                    end
+                end
             else
-                print("No trait found in this template")
+                print("Args[" .. i .. "] = " .. tostring(v))
             end
         end
-    end
 
-    return traitNames
-end
+        while isRunning do
+            local speed = speedSlider.CurrentValue -- Use the slider's current value for speed
 
--- Main reroll loop
-while true do
-    if isRunning then
-        event:FireServer(unpack(args)) -- Fire the event with the arguments
-        wait(0.2) -- Delay to avoid overloading
+            -- Fire the server event
+            event:FireServer(unpack(args))
+            wait(speed)
 
-        local traits = getAllTraits() -- Retrieve current traits
+            -- Get all traits and check for rare traits
+            local traits = getAllTraits()
+            local currentTrait = selectedTrait or "None"
+            for _, trait in pairs(traits) do
+                print("Current Trait:", trait)
+                if trait == selectedTrait then
+                    print("Got a rare trait (" .. trait .. ")! Forcefully stopping reroll.")
+                    isRunning = false
+                    forceStop = true
+                    break
+                end
+            end
 
-        -- Log traits for debugging
-        for _, trait in pairs(traits) do
-            print("Current Trait:", trait)
-        end
-
-        -- Check for rare traits and stop reroll
-        for _, trait in pairs(traits) do
-            if trait == "Liege" or trait == "Godly" or trait == "Exclusive" then
-                print("Got a rare trait (" .. trait .. ")! Forcefully stopping reroll.")
-                isRunning = false
-                forceStop = true -- Enforce stopping
+            -- Stop the loop if forceStop is true
+            if forceStop then
                 break
             end
         end
 
-        if forceStop then
-            break -- Exit the loop immediately
+        if not isRunning then
+            print("Reroll process has stopped.")
         end
-    else
-        wait(0.1) -- Wait before checking again
-    end
-end
+    end,
+})
