@@ -1,0 +1,108 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Ascension Hub",
+    Icon = 0,
+    LoadingTitle = "Ascension Hub - Anime Reborn",
+    LoadingSubtitle = "Join the server for more scripts!",
+    Theme = "Default",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Ascension Hub"
+    },
+    Discord = {
+        Enabled = true,
+        Invite = "Pp87TBw6mD",
+        RememberJoins = true
+    },
+    KeySystem = false,
+    KeySettings = {
+        Title = "Key",
+        Subtitle = "Key System",
+        Note = "No method of obtaining the key is provided",
+        FileName = "12371479123",
+        SaveKey = false,
+        GrabKeyFromSite = false,
+        Key = {"Hello"}
+    }
+})
+
+Rayfield:Notify({
+    Title = "Thanks for using Ascension Hub",
+    Content = "Join our discord server for more scripts and updates",
+    Duration = 5,
+    Image = 4483362458,
+})
+
+local rs = game:GetService("ReplicatedStorage")
+local mainTab = Window:CreateTab("Main", 4483362458)
+local mainSection = mainTab:CreateSection("Main")ß
+
+local giveGemsInput = mainTab:CreateInput({
+    Name = "Gems",
+    PlaceholderText = "Enter the amount of gems to give",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Value)
+        local args = {
+            [1] = "SummonMulti",
+            [2] = {
+                ["SetAmount"] = 0,
+                ["Cost"] = -tonumber(Value)
+            }
+        }
+
+        -- Fire gems request
+        rs:WaitForChild("Events"):WaitForChild("Summoning"):WaitForChild("SummonEvent"):FireServer(unpack(args))
+
+        -- force shut Summon GUI for 10 seconds straight
+        task.spawn(function()
+            local plr = game.Players.LocalPlayer
+            local pg = plr:WaitForChild("PlayerGui")
+            for i = 1, 100 do -- 100 * 0.1 = 10 seconds
+                local lobbyGui = pg:FindFirstChild("LobbyGUI") or pg:FindFirstChild("LobbyGui")
+                if lobbyGui then
+                    local summon = lobbyGui:FindFirstChild("Summon")
+                    if summon then
+                        summon.Visible = false
+                        if summon:IsA("ScreenGui") then
+                            summon.Enabled = false
+                        end
+                    end
+                end
+                task.wait(0.1)
+            end
+        end)
+    end
+})
+
+local miscTab = Window:CreateTab("Misc", 4483362458)
+local miscSection = miscTab:CreateSection("Misc")
+
+-- Infinite Yield Button
+local iyButton = miscTab:CreateButton({
+    Name = "Infinite Yield",
+    Callback = function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
+        end)
+        if not success then
+            warn("Failed to load Infinite Yield:", err)
+        end
+    end,
+})
+
+-- Simple Spy Button
+local rSpyButton = miscTab:CreateButton({
+    Name = "Simple Spy",
+    Callback = function()
+        local success, err = pcall(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/SimpleSpyV3/main.lua"))()
+        end)
+        if not success then
+            warn("Failed to load Simple Spy:", err)
+        end
+    end,
+})
