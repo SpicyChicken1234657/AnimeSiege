@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Ascension Hub",
+    Name = "Ascension Hub - Anime Reborn",
     Icon = 0,
     LoadingTitle = "Ascension Hub - Anime Reborn",
     LoadingSubtitle = "Join the server for more scripts!",
