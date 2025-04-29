@@ -39,7 +39,7 @@ Rayfield:Notify({
 
 local rs = game:GetService("ReplicatedStorage")
 local mainTab = Window:CreateTab("Main", 4483362458)
-local mainSection = mainTab:CreateSection("Main")ß
+local mainSection = mainTab:CreateSection("Main")
 
 local giveGemsInput = mainTab:CreateInput({
     Name = "Gems",
