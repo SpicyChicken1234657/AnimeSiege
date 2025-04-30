@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Ascension Hub - Anime Reborn",
+    Name = "Ascension Hub",
     Icon = 0,
     LoadingTitle = "Ascension Hub - Anime Reborn",
     LoadingSubtitle = "Join the server for more scripts!",
@@ -61,7 +61,7 @@ local giveGemsInput = mainTab:CreateInput({
         task.spawn(function()
             local plr = game.Players.LocalPlayer
             local pg = plr:WaitForChild("PlayerGui")
-            for i = 1, 100 do -- 100 * 0.1 = 10 seconds
+            for i = 1, 25 do -- 100 * 0.1 = 10 seconds
                 local lobbyGui = pg:FindFirstChild("LobbyGUI") or pg:FindFirstChild("LobbyGui")
                 if lobbyGui then
                     local summon = lobbyGui:FindFirstChild("Summon")
@@ -77,6 +77,28 @@ local giveGemsInput = mainTab:CreateInput({
         end)
     end
 })
+
+local autoRoll1Input = mainTab:CreateInput({
+    Name = "Auto Roll 1st banner",
+    PlaceholderText = "How much rolls",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Value1)
+        local amount = tonumber(Value1)
+        if amount then
+            for i = 1, amount do
+                local args = {
+                    [1] = "SummonMulti",
+                    [2] = {
+                        ["SetAmount"] = 1,
+                        ["Cost"] = 500
+                    }
+                }
+                rs:WaitForChild("Events"):WaitForChild("Summoning"):WaitForChild("SummonEvent"):FireServer(unpack(args))
+            end
+        end
+    end
+})
+
 
 local miscTab = Window:CreateTab("Misc", 4483362458)
 local miscSection = miscTab:CreateSection("Misc")
