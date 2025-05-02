@@ -1,0 +1,50 @@
+-- Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+
+-- Remote reference
+local requestRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("OreService"):WaitForChild("RE"):WaitForChild("RequestRandomOre")
+
+-- Player GUI
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SpamRemoteGui"
+screenGui.Parent = playerGui
+
+-- Create Button
+local button = Instance.new("TextButton")
+button.Name = "SpamButton"
+button.Text = "Turn ON"
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.5, -25)
+button.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2) -- Green color for "Off"
+button.Parent = screenGui
+
+-- Variables for toggle
+local isSpamming = false
+
+-- Function to spam the remote
+local function spamRemote()
+    task.spawn(function()
+        while isSpamming do
+            requestRemote:FireServer()
+            task.wait(0.01) -- Lower for more speed, but may lag/crash; try 0.005 for max speed
+        end
+    end)
+end
+
+-- Button click handler
+button.MouseButton1Click:Connect(function()
+    isSpamming = not isSpamming -- Toggle the state
+    if isSpamming then
+        button.Text = "Turn OFF"
+        button.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2) -- Red color for "On"
+        spamRemote()
+    else
+        button.Text = "Turn ON"
+        button.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2) -- Green color for "Off"
+    end
+end)
