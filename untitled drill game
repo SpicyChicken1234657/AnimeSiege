@@ -1,50 +1,80 @@
--- Services
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
--- Remote reference
 local requestRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("OreService"):WaitForChild("RE"):WaitForChild("RequestRandomOre")
-
--- Player GUI
 local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
 
--- Create ScreenGui
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SpamRemoteGui"
-screenGui.Parent = playerGui
+-- UI Setup
+local Window = Rayfield:CreateWindow({
+    Name = "Ascension Hub - Untitled Drill Game",
+    Icon = 0,
+    LoadingTitle = "Ascension Hub - Untitled Drill Game",
+    LoadingSubtitle = "Join the server for more scripts!",
+    Theme = "Default",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "Ascension Hub"
+    },
+    Discord = {
+        Enabled = true,
+        Invite = "hsd2uMA7er",
+        RememberJoins = true
+    },
+    KeySystem = false
+})
 
--- Create Button
-local button = Instance.new("TextButton")
-button.Name = "SpamButton"
-button.Text = "Turn ON"
-button.Size = UDim2.new(0, 200, 0, 50)
-button.Position = UDim2.new(0.5, -100, 0.5, -25)
-button.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2) -- Green color for "Off"
-button.Parent = screenGui
+Rayfield:Notify({
+    Title = "Thanks for using Ascension Hub",
+    Content = "Join our discord server for more scripts and updates and if you have bugs",
+    Duration = 5,
+    Image = 4483362458,
+})
 
--- Variables for toggle
+-- Vars
 local isSpamming = false
+local spamSpeed = 0.1 -- default
 
--- Function to spam the remote
-local function spamRemote()
-    task.spawn(function()
-        while isSpamming do
-            requestRemote:FireServer()
-            task.wait(0.01) -- Lower for more speed, but may lag/crash; try 0.005 for max speed
+-- Main Tab Setup
+local mainTab = Window:CreateTab("Main", 4483362458)
+mainTab:CreateSection("Drill Spammer")
+
+-- Speed Slider (inside Main tab)
+mainTab:CreateSlider({
+    Name = "Drill Spam Speed",
+    Range = {0.05, 1},
+    Increment = 0.05,
+    Suffix = "sec",
+    CurrentValue = spamSpeed,
+    Flag = "DrillSpamSlider",
+    Callback = function(Value)
+        spamSpeed = Value
+    end,
+})
+
+-- Start Button (inside Main tab)
+mainTab:CreateButton({
+    Name = "Start Drill",
+    Callback = function()
+        if not isSpamming then
+            isSpamming = true
+            task.spawn(function()
+                while isSpamming do
+                    requestRemote:FireServer()
+                    task.wait(spamSpeed)
+                end
+            end)
         end
-    end)
-end
+    end,
+})
 
--- Button click handler
-button.MouseButton1Click:Connect(function()
-    isSpamming = not isSpamming -- Toggle the state
-    if isSpamming then
-        button.Text = "Turn OFF"
-        button.BackgroundColor3 = Color3.new(0.8, 0.2, 0.2) -- Red color for "On"
-        spamRemote()
-    else
-        button.Text = "Turn ON"
-        button.BackgroundColor3 = Color3.new(0.2, 0.8, 0.2) -- Green color for "Off"
-    end
-end)
+-- Stop Button (inside Main tab)
+mainTab:CreateButton({
+    Name = "Stop Drill",
+    Callback = function()
+        isSpamming = false
+    end,
+})
