@@ -1,8 +1,8 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local Window   = Rayfield:CreateWindow({
-    Name                   = "Ascension Hub - Summer Hood",
+    Name                   = "Ascension Hub - New Hood",
     Icon                   = 0,
-    LoadingTitle           = "Ascension Hub - Summer Hood",
+    LoadingTitle           = "Ascension Hub - New Hood",
     LoadingSubtitle        = "Join the server for more scripts!",
     Theme                  = "Default",
     DisableRayfieldPrompts = true,
