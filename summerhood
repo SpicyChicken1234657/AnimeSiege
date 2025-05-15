@@ -48,7 +48,7 @@ autoTab:CreateSlider({
 })
 
 autoTab:CreateToggle({
-    Name         = "Auto Candy (Stealth Tween)",
+    Name         = "Auto Candy",
     CurrentValue = false,
     Flag         = "AutoCandyStealth",
     Callback     = function(val)
