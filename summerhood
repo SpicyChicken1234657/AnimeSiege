@@ -1,0 +1,351 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Window   = Rayfield:CreateWindow({
+    Name                   = "Ascension Hub - Summer Hood",
+    Icon                   = 0,
+    LoadingTitle           = "Ascension Hub - Summer Hood",
+    LoadingSubtitle        = "Join the server for more scripts!",
+    Theme                  = "Default",
+    DisableRayfieldPrompts = true,
+    DisableBuildWarnings   = false,
+    ConfigurationSaving    = { Enabled = true, FolderName = nil, FileName = "Ascension Hub" },
+    Discord                = { Enabled = true, Invite = "hsd2uMA7er", RememberJoins = true },
+    KeySystem              = false,
+    KeySettings            = {
+        Title            = "Key",
+        Subtitle         = "Key System",
+        Note             = "No method of obtaining the key is provided",
+        FileName         = "12371479123",
+        SaveKey          = false,
+        GrabKeyFromSite  = false,
+        Key              = {"Hello"}
+    }
+})
+Rayfield:Notify({
+    Title   = "Thanks for using Ascension Hub",
+    Content = "Join our discord server for more scripts and updates",
+    Duration= 5,
+    Image   = 4483362458,
+})
+
+local TweenService = game:GetService("TweenService")
+local RunService   = game:GetService("RunService")
+local Camera       = workspace.CurrentCamera
+
+local autoTab = Window:CreateTab("Auto", 4483362458)
+local espTab  = Window:CreateTab("ESP",  4483362458)
+
+local collectingCandy = false
+local tweenSpeed      = 60 
+
+autoTab:CreateSlider({
+    Name         = "Auto Candy Speed",
+    Range        = {20, 300},
+    Increment    = 10,
+    Suffix       = " stud/s",
+    CurrentValue = tweenSpeed,
+    Flag         = "CandySpeed",
+    Callback     = function(v) tweenSpeed = v end,
+})
+
+autoTab:CreateToggle({
+    Name         = "Auto Candy (Stealth Tween)",
+    CurrentValue = false,
+    Flag         = "AutoCandyStealth",
+    Callback     = function(val)
+        collectingCandy = val
+        task.spawn(function()
+            local lp     = game.Players.LocalPlayer
+            local char   = lp.Character or lp.CharacterAdded:Wait()
+            local hrp    = char:WaitForChild("HumanoidRootPart")
+            local safeCF = hrp.CFrame
+
+            while collectingCandy do
+                local folder = workspace:WaitForChild("Ignored"):WaitForChild("Candy")
+                for _, c in ipairs(folder:GetChildren()) do
+                    if not collectingCandy then break end
+                    if c:IsA("BasePart") then
+                        hrp.CFrame = CFrame.new(c.Position.X, -50, c.Position.Z)
+                        local dist = (c.Position - hrp.Position).Magnitude
+                        local tm   = math.clamp(dist / tweenSpeed, 0.2, 2)
+                        local tween = TweenService:Create(hrp,
+                            TweenInfo.new(tm, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+                            { CFrame = c.CFrame + Vector3.new(0, 5, 0) })
+                        tween:Play()
+                        tween.Completed:Wait()
+                        task.wait(0.1)
+                    end
+                end
+                if collectingCandy then hrp.CFrame = safeCF end
+                task.wait(0.2)
+            end
+
+            if hrp and safeCF then hrp.CFrame = safeCF end
+        end)
+    end,
+})
+
+local nameEspEnabled, healthEspEnabled, twoDEspEnabled = false, false, false
+
+local espConns, nameTable, healthTable = {}, {}, {}
+local boxes, boxConn = {}, nil
+
+local function safeDestroy(obj)
+    pcall(function()
+        if typeof(obj)=="RBXScriptConnection" then obj:Disconnect()
+        elseif typeof(obj)=="Instance" then obj:Destroy()
+        elseif obj and obj.Remove then obj:Remove() end
+    end)
+end
+
+local function update2D()
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p~=game.Players.LocalPlayer then
+            local char = p.Character
+            local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+            if not hrp then
+                if boxes[p] then boxes[p]:Remove() boxes[p]=nil end
+            else
+                local size = char:GetExtentsSize()
+                local corners = {
+                    Vector3.new( size.X/2, size.Y/2, size.Z/2),
+                    Vector3.new(-size.X/2, size.Y/2, size.Z/2),
+                    Vector3.new( size.X/2,-size.Y/2, size.Z/2),
+                    Vector3.new(-size.X/2,-size.Y/2, size.Z/2),
+                    Vector3.new( size.X/2, size.Y/2,-size.Z/2),
+                    Vector3.new(-size.X/2, size.Y/2,-size.Z/2),
+                    Vector3.new( size.X/2,-size.Y/2,-size.Z/2),
+                    Vector3.new(-size.X/2,-size.Y/2,-size.Z/2),
+                }
+
+                local minX,minY = math.huge,math.huge
+                local maxX,maxY = -math.huge,-math.huge
+
+                for _, off in ipairs(corners) do
+                    local wp = hrp.CFrame:PointToWorldSpace(off)
+                    local sp,on = Camera:WorldToViewportPoint(wp)
+                    if on then
+                        minX = math.min(minX, sp.X)
+                        minY = math.min(minY, sp.Y)
+                        maxX = math.max(maxX, sp.X)
+                        maxY = math.max(maxY, sp.Y)
+                    end
+                end
+
+                if minX==math.huge then
+                    if boxes[p] then boxes[p]:Remove() boxes[p]=nil end
+                else
+                    local box = boxes[p]
+                    if not box then
+                        box = Drawing.new("Square")
+                        box.Color     = Color3.fromRGB(0,255,255)
+                        box.Thickness = 2
+                        box.Filled    = false
+                        boxes[p]      = box
+                    end
+                    box.Visible  = twoDEspEnabled
+                    box.Position = Vector2.new(minX, minY)
+                    box.Size     = Vector2.new(maxX-minX, maxY-minY)
+                end
+            end
+        end
+    end
+end
+
+local function createESP(player)
+    if player==game.Players.LocalPlayer then return end
+
+    if espConns[player] then
+        safeDestroy(espConns[player].heartbeat)
+        safeDestroy(espConns[player].charAdded)
+    end
+    safeDestroy(nameTable[player])
+    safeDestroy(healthTable[player])
+
+    local function setup(char)
+        if not char.Parent then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        if nameEspEnabled then
+            local bg = Instance.new("BillboardGui", char)
+            bg.Name        = player.Name.."_NameESP"
+            bg.Adornee     = hrp
+            bg.Size        = UDim2.new(0,200,0,40)
+            bg.StudsOffset = Vector3.new(0,3,0)
+            bg.AlwaysOnTop = true
+            bg.MaxDistance = 0
+            local lbl = Instance.new("TextLabel", bg)
+            lbl.Size                   = UDim2.new(1,0,1,0)
+            lbl.BackgroundTransparency = 1
+            lbl.Text                   = player.Name
+            lbl.TextColor3             = Color3.new(1,1,1)
+            lbl.Font                   = Enum.Font.GothamBold
+            lbl.TextSize               = 14
+            nameTable[player]          = bg
+        end
+
+        if healthEspEnabled then
+            local bg = Instance.new("BillboardGui", char)
+            bg.Name        = player.Name.."_HealthESP"
+            bg.Adornee     = hrp
+            bg.Size        = UDim2.new(0,200,0,40)
+            bg.StudsOffset = Vector3.new(0,1.5,0)
+            bg.AlwaysOnTop = true
+            bg.MaxDistance = 0
+            local lbl = Instance.new("TextLabel", bg)
+            lbl.Size                   = UDim2.new(1,0,1,0)
+            lbl.BackgroundTransparency = 1
+            lbl.TextColor3             = Color3.new(0,1,0)
+            lbl.Font                   = Enum.Font.GothamBold
+            lbl.TextSize               = 12
+            healthTable[player]        = lbl
+        end
+    end
+
+    if player.Character then setup(player.Character) end
+    espConns[player] = {
+        heartbeat = RunService.Heartbeat:Connect(function()
+            if healthTable[player] and player.Character and player.Character:FindFirstChild("Humanoid") then
+                pcall(function()
+                    healthTable[player].Text = "HP:"..math.floor(player.Character.Humanoid.Health)
+                end)
+            end
+        end),
+        charAdded = player.CharacterAdded:Connect(setup)
+    }
+end
+
+local function refreshAll()
+    for _, p in ipairs(game.Players:GetPlayers()) do
+        if p~=game.Players.LocalPlayer then createESP(p) end
+    end
+end
+
+game.Players.PlayerAdded:Connect(createESP)
+game.Players.PlayerRemoving:Connect(function(p)
+    safeDestroy(espConns[p] and espConns[p].heartbeat)
+    safeDestroy(espConns[p] and espConns[p].charAdded)
+    safeDestroy(nameTable[p])
+    safeDestroy(healthTable[p])
+    if boxes[p] then boxes[p]:Remove() boxes[p]=nil end
+end)
+for _, p in ipairs(game.Players:GetPlayers()) do
+    if p~=game.Players.LocalPlayer then createESP(p) end
+end
+
+espTab:CreateToggle({ Name="Name ESP",   CurrentValue=false, Flag="NameESP",   Callback=function(v) nameEspEnabled=v;   refreshAll() end })
+espTab:CreateToggle({ Name="Health ESP", CurrentValue=false, Flag="HealthESP", Callback=function(v) healthEspEnabled=v; refreshAll() end })
+espTab:CreateToggle({
+    Name         = "2D Box ESP",
+    CurrentValue = false,
+    Flag         = "Box2DESP",
+    Callback     = function(v)
+        twoDEspEnabled = v
+        if v then
+            boxConn = RunService.RenderStepped:Connect(update2D)
+        else
+            safeDestroy(boxConn)
+            for _, b in pairs(boxes) do b:Remove() end
+            boxes = {}
+        end
+    end
+})
+
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+local armorThreshold = 50
+local autoBuyEnabled = false
+local debounce = false
+
+local function getArmorSaveValue()
+    local infoFolder = lp:WaitForChild("DataFolder"):WaitForChild("Information")
+    local armorValue = infoFolder:FindFirstChild("ArmorSave")
+    if armorValue and armorValue:IsA("IntValue") then
+        return armorValue.Value
+    end
+    return 0
+end
+
+local function AutoBuyFullArmor()
+    local char = lp.Character or lp.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    local targetPos = Vector3.new(-1705.85, 291.51, -2130.68)
+    local shopFolder = workspace:WaitForChild("Ignored"):WaitForChild("Shop")
+
+    local fullArmorModels = {}
+    for _, obj in ipairs(shopFolder:GetChildren()) do
+        if obj.Name == "[Full Armor]" then
+            table.insert(fullArmorModels, obj)
+        end
+    end
+
+    local nearestArmor = nil
+    local nearestDist = math.huge
+    for _, armor in ipairs(fullArmorModels) do
+        local part = armor.PrimaryPart or armor:FindFirstChildWhichIsA("BasePart")
+        if part then
+            local dist = (part.Position - targetPos).Magnitude
+            if dist < nearestDist then
+                nearestDist = dist
+                nearestArmor = armor
+            end
+        end
+    end
+
+    if nearestArmor then
+        local originalCFrame = hrp.CFrame
+        local tpPos = nearestArmor.PrimaryPart and nearestArmor.PrimaryPart.Position or nearestArmor:FindFirstChildWhichIsA("BasePart").Position
+        hrp.CFrame = CFrame.new(tpPos + Vector3.new(0, 5, 0))
+        wait(0.2)
+
+        for _, desc in ipairs(nearestArmor:GetDescendants()) do
+            if desc:IsA("ClickDetector") then
+                fireclickdetector(desc)
+                wait(0.2)
+            end
+        end
+
+        wait(0.2)
+        hrp.CFrame = originalCFrame
+    end
+end
+
+autoTab:CreateSlider({
+    Name = "Armor ",
+    Range = {0, 200},
+    Increment = 1,
+    Suffix = "Armor",
+    CurrentValue = armorThreshold,
+    Flag = "ArmorThreshold",
+    Callback = function(value)
+        armorThreshold = value
+    end
+})
+autoTab:CreateToggle({
+    Name = "Auto Buy Armor",
+    Description = "Automatically buy armor when ArmorSave falls below threshold",
+    CurrentValue = false,
+    Flag = "AutoBuyArmorToggle",
+    Callback = function(value)
+        autoBuyEnabled = value
+        if autoBuyEnabled then
+            task.spawn(function()
+                while autoBuyEnabled do
+                    if not debounce then
+                        debounce = true
+                        local currentArmor = getArmorSaveValue()
+                        if currentArmor < armorThreshold then
+                            AutoBuyFullArmor()
+                        end
+                        task.wait(3)
+                        debounce = false
+                    end
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end
+})
+
