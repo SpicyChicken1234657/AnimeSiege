@@ -1,4 +1,5 @@
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Library = {}
 Library.__index = Library
@@ -32,9 +33,12 @@ function Library:CreateWindow(opts)
 	main.Name = "Main"
 	main.BorderSizePixel = 0
 	main.BackgroundTransparency = 1
+	main.Active = true
+	main.Draggable = true
 
 	local title = Instance.new("TextLabel", main)
-	title.Size = UDim2.new(1, 0, 0, 40)
+	title.Size = UDim2.new(1, -40, 0, 40)
+	title.Position = UDim2.new(0, 0, 0, 0)
 	title.Text = opts.Name or "Executor Hub"
 	title.BackgroundTransparency = 1
 	title.TextColor3 = Library.Theme.Text
@@ -42,8 +46,37 @@ function Library:CreateWindow(opts)
 	title.TextScaled = true
 	title.TextTransparency = 1
 
+	local closeBtn = Instance.new("TextButton", main)
+	closeBtn.Size = UDim2.new(0, 40, 0, 40)
+	closeBtn.Position = UDim2.new(1, -40, 0, 0)
+	closeBtn.Text = "X"
+	closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	closeBtn.TextColor3 = Color3.new(1, 0, 0)
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.TextScaled = true
+	closeBtn.BackgroundTransparency = 1
+	closeBtn.TextTransparency = 1
+
 	TweenService:Create(main, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
 	TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+	TweenService:Create(closeBtn, TweenInfo.new(0.5), {
+		TextTransparency = 0,
+		BackgroundTransparency = 0.1
+	}):Play()
+
+	local visible = true
+	closeBtn.MouseButton1Click:Connect(function()
+		visible = false
+		main.Visible = false
+	end)
+
+	UserInputService.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+		if input.KeyCode == Enum.KeyCode.RightShift then
+			visible = not visible
+			main.Visible = visible
+		end
+	end)
 
 	self.Main = main
 	self.Tabs = {}
