@@ -1,3 +1,5 @@
+local TweenService = game:GetService("TweenService")
+
 local Library = {}
 Library.__index = Library
 
@@ -10,9 +12,18 @@ Library.Theme = {
 function Library:CreateWindow(opts)
 	local self = setmetatable({}, Library)
 
+	local guiName = opts.Name or "ExecutorUI"
+
+	for _, v in pairs(game:GetService("CoreGui"):GetChildren()) do
+		if v:IsA("ScreenGui") and v.Name == guiName then
+			v:Destroy()
+		end
+	end
+
 	local screenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-	screenGui.Name = opts.Name or "ExecutorUI"
+	screenGui.Name = guiName
 	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	screenGui.ResetOnSpawn = false
 
 	local main = Instance.new("Frame", screenGui)
 	main.Size = UDim2.new(0, 500, 0, 400)
@@ -20,6 +31,7 @@ function Library:CreateWindow(opts)
 	main.BackgroundColor3 = Library.Theme.Background
 	main.Name = "Main"
 	main.BorderSizePixel = 0
+	main.BackgroundTransparency = 1
 
 	local title = Instance.new("TextLabel", main)
 	title.Size = UDim2.new(1, 0, 0, 40)
@@ -28,6 +40,10 @@ function Library:CreateWindow(opts)
 	title.TextColor3 = Library.Theme.Text
 	title.Font = Enum.Font.GothamBold
 	title.TextScaled = true
+	title.TextTransparency = 1
+
+	TweenService:Create(main, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+	TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
 
 	self.Main = main
 	self.Tabs = {}
@@ -41,6 +57,7 @@ function Library:CreateWindow(opts)
 
 		local layout = Instance.new("UIListLayout", tab)
 		layout.Padding = UDim.new(0, 8)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
 
 		local tabObj = {}
 
@@ -52,6 +69,14 @@ function Library:CreateWindow(opts)
 			btn.TextColor3 = Library.Theme.Text
 			btn.Font = Enum.Font.Gotham
 			btn.TextScaled = true
+			btn.BackgroundTransparency = 1
+			btn.TextTransparency = 1
+
+			TweenService:Create(btn, TweenInfo.new(0.4), {
+				BackgroundTransparency = 0,
+				TextTransparency = 0
+			}):Play()
+
 			btn.MouseButton1Click:Connect(callback)
 		end
 
