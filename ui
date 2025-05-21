@@ -8,7 +8,8 @@ Library.__index = Library
 Library.Theme = {
 	Background = Color3.fromRGB(25, 25, 25),
 	Accent = Color3.fromRGB(0, 120, 255),
-	Text = Color3.fromRGB(255, 255, 255)
+	Text = Color3.fromRGB(255, 255, 255),
+	TitleBar = Color3.fromRGB(10, 60, 130) -- distinct darker blue for top bar
 }
 
 function Library:CreateWindow(opts)
@@ -36,8 +37,15 @@ function Library:CreateWindow(opts)
 	main.BackgroundTransparency = 1
 	main.Parent = screenGui
 
-	local title = Instance.new("TextLabel", main)
-	title.Size = UDim2.new(1, -40, 0, 40)
+	-- Title Bar Frame for dragging & colored top
+	local titleBar = Instance.new("Frame", main)
+	titleBar.Size = UDim2.new(1, 0, 0, 40)
+	titleBar.Position = UDim2.new(0, 0, 0, 0)
+	titleBar.BackgroundColor3 = Library.Theme.TitleBar
+	titleBar.BorderSizePixel = 0
+
+	local title = Instance.new("TextLabel", titleBar)
+	title.Size = UDim2.new(1, -40, 1, 0)
 	title.Position = UDim2.new(0, 0, 0, 0)
 	title.Text = opts.Name or "Executor Hub"
 	title.BackgroundTransparency = 1
@@ -45,9 +53,11 @@ function Library:CreateWindow(opts)
 	title.Font = Enum.Font.GothamBold
 	title.TextScaled = true
 	title.TextTransparency = 1
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.Position = UDim2.new(0, 10, 0, 0)
 
-	local closeBtn = Instance.new("TextButton", main)
-	closeBtn.Size = UDim2.new(0, 40, 0, 40)
+	local closeBtn = Instance.new("TextButton", titleBar)
+	closeBtn.Size = UDim2.new(0, 40, 1, 0)
 	closeBtn.Position = UDim2.new(1, -40, 0, 0)
 	closeBtn.Text = "X"
 	closeBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -57,10 +67,10 @@ function Library:CreateWindow(opts)
 	closeBtn.BackgroundTransparency = 1
 	closeBtn.TextTransparency = 1
 
-	-- Drag Logic
+	-- Drag Logic on titleBar only
 	local dragging, dragInput, dragStart, startPos
 
-	title.InputBegan:Connect(function(input)
+	titleBar.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			dragging = true
 			dragStart = input.Position
